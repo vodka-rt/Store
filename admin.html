@@ -11,66 +11,57 @@
 
 <style>
 body {
-  background: radial-gradient(circle at top left,
-    #2a2a2a 0%,
-    #121212 40%,
-    #000000 100%);
+  background: linear-gradient(135deg,#1e1e1e,#000000);
 }
 </style>
 </head>
 
-<body class="text-gray-200 min-h-screen">
+<body class="text-gray-200 min-h-screen flex items-center justify-center">
 
-<div id="app" class="max-w-6xl mx-auto px-6 py-10"></div>
+<div id="loginBox"
+     class="w-full max-w-md p-8 rounded-3xl border border-gray-800
+            bg-black/70 shadow-2xl">
+
+  <h2 class="text-2xl font-bold mb-6 text-center">Login Admin</h2>
+
+  <input id="email"
+    placeholder="Email"
+    class="w-full p-3 mb-4 rounded-xl bg-gray-800 border border-gray-700">
+
+  <input id="password"
+    type="password"
+    placeholder="Senha"
+    class="w-full p-3 mb-4 rounded-xl bg-gray-800 border border-gray-700">
+
+  <button id="loginBtn"
+    class="w-full bg-gray-300 text-black p-3 rounded-xl font-semibold">
+    Entrar
+  </button>
+
+  <div id="msg" class="mt-4 text-sm text-center"></div>
+</div>
+
+<div id="panelBox" class="hidden max-w-5xl mx-auto px-6 py-10"></div>
 
 <script>
-const SUPABASE_URL = "https://jyrgpvozcsuydfvwdbso.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5cmdwdm96Y3N1eWRmdndkYnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzc5NDYsImV4cCI6MjA4NzYxMzk0Nn0.UaO49Ie82pbSosiaLo84NgNBiTXLoQfnzrgEhB6HjFw";
+const SUPABASE_URL = "COLE_SUA_URL_AQUI";
+const SUPABASE_ANON_KEY = "COLE_SUA_ANON_KEY_AQUI";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+if(!window.supabase){
+  document.getElementById("msg").innerHTML =
+    "<span class='text-red-400'>Erro carregando Supabase</span>";
+} else {
 
-const app = document.getElementById("app");
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 
-init();
-
-async function init(){
-  const { data: { session } } = await supabase.auth.getSession();
-  if(session){
-    showPanel();
-  } else {
-    showLogin();
-  }
-}
-
-function showLogin(){
-  app.innerHTML = `
-    <div class="max-w-md mx-auto p-8 rounded-3xl border border-gray-800
-                bg-gradient-to-b from-gray-900 to-black shadow-2xl">
-
-      <h2 class="text-2xl font-bold mb-6 text-center">Login Admin</h2>
-
-      <input id="email"
-        placeholder="Email"
-        class="w-full p-3 mb-4 rounded-xl bg-gray-800 border border-gray-700">
-
-      <input id="password"
-        type="password"
-        placeholder="Senha"
-        class="w-full p-3 mb-4 rounded-xl bg-gray-800 border border-gray-700">
-
-      <button id="loginBtn"
-        class="w-full bg-gray-300 text-black p-3 rounded-xl font-semibold">
-        Entrar
-      </button>
-
-      <div id="msg" class="mt-4 text-sm text-center"></div>
-    </div>
-  `;
+  const loginBox = document.getElementById("loginBox");
+  const panelBox = document.getElementById("panelBox");
 
   document.getElementById("loginBtn").onclick = async function(){
+
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
@@ -83,173 +74,45 @@ function showLogin(){
       document.getElementById("msg").innerHTML =
         "<span class='text-red-400'>" + error.message + "</span>";
     } else {
-      showPanel();
+      loginBox.classList.add("hidden");
+      panelBox.classList.remove("hidden");
+      loadPanel();
     }
   };
-}
 
-async function showPanel(){
+  async function loadPanel(){
 
-  const { data: settings } = await supabase
-    .from("site_settings")
-    .select("*")
-    .eq("id",1)
-    .single();
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("*");
 
-  const { data: kits } = await supabase.from("kits").select("*");
-  const { data: coupons } = await supabase.from("coupons").select("*");
-  const { data: orders } = await supabase.from("orders").select("*");
+    panelBox.innerHTML = `
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Painel Admin</h2>
+        <button onclick="logout()"
+          class="px-4 py-2 bg-red-600 rounded">
+          Sair
+        </button>
+      </div>
 
-  app.innerHTML = `
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold">Painel Admin</h1>
-      <button onclick="logout()"
-        class="px-4 py-2 bg-red-600 rounded">
-        Sair
-      </button>
-    </div>
-
-    <h2 class="text-xl font-bold mb-4">Configurações da Loja</h2>
-
-    <input id="storeName"
-      value="${settings.site_name}"
-      class="w-full p-2 mb-3 rounded bg-gray-800">
-
-    <div class="flex gap-3 mb-3">
-      <input id="color1" type="color" value="${settings.gradient_color_1}">
-      <input id="color2" type="color" value="${settings.gradient_color_2}">
-    </div>
-
-    <input id="banner"
-      placeholder="URL do Banner"
-      value="${settings.banner_url || ''}"
-      class="w-full p-2 mb-3 rounded bg-gray-800">
-
-    <button onclick="saveSettings()"
-      class="mb-8 px-6 py-2 bg-green-600 rounded">
-      Salvar Configurações
-    </button>
-
-    <hr class="mb-8 border-gray-700">
-
-    <h2 class="text-xl font-bold mb-4">Criar Kit</h2>
-
-    <input id="kitTitle" placeholder="Título"
-      class="w-full p-2 mb-2 rounded bg-gray-800">
-
-    <input id="kitDesc" placeholder="Descrição"
-      class="w-full p-2 mb-2 rounded bg-gray-800">
-
-    <input id="kitPrice" type="number" placeholder="Preço"
-      class="w-full p-2 mb-2 rounded bg-gray-800">
-
-    <input id="kitImage" placeholder="URL da Imagem"
-      class="w-full p-2 mb-3 rounded bg-gray-800">
-
-    <button onclick="createKit()"
-      class="mb-8 px-6 py-2 bg-blue-600 rounded">
-      Criar Kit
-    </button>
-
-    <hr class="mb-8 border-gray-700">
-
-    <h2 class="text-xl font-bold mb-4">Criar Cupom</h2>
-
-    <input id="couponCode" placeholder="Código"
-      class="w-full p-2 mb-2 rounded bg-gray-800">
-
-    <input id="couponDiscount" type="number" placeholder="% Desconto"
-      class="w-full p-2 mb-3 rounded bg-gray-800">
-
-    <button onclick="createCoupon()"
-      class="mb-8 px-6 py-2 bg-purple-600 rounded">
-      Criar Cupom
-    </button>
-
-    <hr class="mb-8 border-gray-700">
-
-    <h2 class="text-xl font-bold mb-4">Pedidos</h2>
-
-    ${
-      orders.length === 0
-      ? "<p class='text-gray-500'>Nenhum pedido.</p>"
-      : orders.map(o=>`
+      ${
+        !orders || orders.length === 0
+        ? "<p class='text-gray-400'>Nenhum pedido.</p>"
+        : orders.map(o=>`
           <div class="p-4 mb-4 rounded-xl border border-gray-800 bg-black">
             <p><b>${o.kit_title}</b></p>
-            <p class="text-gray-400 text-sm">${o.mc_nick}</p>
+            <p class="text-gray-400">${o.mc_nick}</p>
             <p>Status: ${o.status}</p>
-
-            ${
-              o.status === "pending"
-              ? `
-                <button onclick="approve('${o.id}')"
-                  class="px-4 py-1 bg-green-600 rounded mr-2">
-                  Aprovar
-                </button>
-                <button onclick="deny('${o.id}')"
-                  class="px-4 py-1 bg-red-600 rounded">
-                  Negar
-                </button>
-              `
-              : ""
-            }
           </div>
         `).join("")
-    }
-  `;
-
-  window.saveSettings = async function(){
-    await supabase.from("site_settings")
-      .update({
-        site_name: document.getElementById("storeName").value,
-        gradient_color_1: document.getElementById("color1").value,
-        gradient_color_2: document.getElementById("color2").value,
-        banner_url: document.getElementById("banner").value
-      })
-      .eq("id",1);
-
-    alert("Salvo!");
-  };
-
-  window.createKit = async function(){
-    await supabase.from("kits").insert({
-      title: document.getElementById("kitTitle").value,
-      description: document.getElementById("kitDesc").value,
-      price_cents: parseFloat(document.getElementById("kitPrice").value) * 100,
-      image_url: document.getElementById("kitImage").value,
-      is_active: true
-    });
-    alert("Kit criado!");
-    showPanel();
-  };
-
-  window.createCoupon = async function(){
-    await supabase.from("coupons").insert({
-      code: document.getElementById("couponCode").value,
-      discount_percent: parseInt(document.getElementById("couponDiscount").value),
-      active: true
-    });
-    alert("Cupom criado!");
-    showPanel();
-  };
-
-  window.approve = async function(id){
-    await supabase.from("orders")
-      .update({status:"approved"})
-      .eq("id",id);
-    showPanel();
-  };
-
-  window.deny = async function(id){
-    await supabase.from("orders")
-      .update({status:"denied"})
-      .eq("id",id);
-    showPanel();
-  };
+      }
+    `;
+  }
 
   window.logout = async function(){
     await supabase.auth.signOut();
-    showLogin();
+    panelBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
   };
 }
 </script>
