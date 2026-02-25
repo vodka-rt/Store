@@ -3,95 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <title>Store</title>
+<style>
+  body { margin:0; }
+</style>
 </head>
 
 <body class="text-gray-200 min-h-screen">
 
-<div id="app"></div>
+<div id="app" class="max-w-6xl mx-auto px-6 py-10"></div>
 
 <script>
-const SUPABASE_URL = "COLE_SUA_URL_AQUI";
-const SUPABASE_ANON_KEY = "COLE_SUA_ANON_KEY_AQUI";
+const SUPABASE_URL = "https://jyrgpvozcsuydfvwdbso.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5cmdwdm96Y3N1eWRmdndkYnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMzc5NDYsImV4cCI6MjA4NzYxMzk0Nn0.UaO49Ie82pbSosiaLo84NgNBiTXLoQfnzrgEhB6HjFw";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const app = document.getElementById("app");
 
-function money(c){
-  return (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+if(!window.supabase){
+  app.innerHTML = "<h1 class='text-red-400'>Erro carregando Supabase.</h1>";
+} else {
+
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  function money(c){
+    return (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+  }
+
+  loadSite();
+
+  async function loadSite(){
+    try {
+
+      const { data: settings, error: e1 } = await supabase
+        .from("site_settings")
+        .select("*")
+        .eq("id",1)
+        .single();
+
+      if(e1) throw e1;
+
+      const { data: kits, error: e2 } = await supabase
+        .from("kits")
+        .select("*")
+        .eq("is_active",true);
+
+      if(e2) throw e2;
+
+      // Aplica degradê
+      document.body.style.background =
+        `linear-gradient(135deg,
+          ${settings.gradient_color_1 || "#2a2a2a"},
+          ${settings.gradient_color_2 || "#000000"})`;
+
+      app.innerHTML = `
+        <div class="flex justify-between items-center mb-10">
+          <h1 class="text-3xl font-bold">${settings.site_name}</h1>
+          <a href="./admin.html"
+             class="px-5 py-2 rounded-xl bg-gray-700 hover:bg-gray-600">
+            Admin
+          </a>
+        </div>
+
+        ${
+          settings.banner_url
+          ? `<img src="${settings.banner_url}"
+               class="rounded-3xl mb-10 w-full object-cover">`
+          : ""
+        }
+
+        <div class="grid md:grid-cols-3 gap-8">
+          ${
+            kits.length === 0
+            ? "<p class='text-gray-400'>Nenhum kit criado ainda.</p>"
+            : kits.map(k=>`
+              <div class="bg-black/40 p-6 rounded-3xl border border-gray-800">
+
+                ${
+                  k.image_url
+                  ? `<img src="${k.image_url}"
+                       class="rounded-xl mb-4 w-full h-40 object-cover">`
+                  : ""
+                }
+
+                <h3 class="text-xl font-semibold">${k.title}</h3>
+                <p class="text-gray-400 mt-2">${k.description || ""}</p>
+
+                <div class="mt-4 text-2xl font-bold">
+                  ${money(k.price_cents)}
+                </div>
+
+                <a href="./buy.html?kit=${k.id}"
+                   class="mt-6 block text-center py-3 rounded-xl bg-gray-300 text-black font-semibold">
+                  Comprar
+                </a>
+              </div>
+            `).join("")
+          }
+        </div>
+      `;
+
+    } catch(err) {
+      app.innerHTML = `
+        <h1 class="text-red-400 text-xl">
+          Erro carregando loja.
+        </h1>
+        <p class="text-gray-400 mt-4">
+          ${err.message}
+        </p>
+      `;
+    }
+  }
 }
-
-async function loadSite(){
-
-  const { data: settings } = await supabase
-    .from("site_settings")
-    .select("*")
-    .eq("id",1)
-    .single();
-
-  const { data: kits } = await supabase
-    .from("kits")
-    .select("*")
-    .eq("is_active",true);
-
-  document.body.style.background =
-    `linear-gradient(135deg, ${settings.gradient_color_1}, ${settings.gradient_color_2})`;
-
-  document.getElementById("app").innerHTML = `
-    <div class="max-w-6xl mx-auto px-6 py-10">
-
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold">${settings.site_name}</h1>
-        <a href="./admin.html"
-           class="px-5 py-2 rounded-xl bg-gray-700 hover:bg-gray-600">
-          Admin
-        </a>
-      </div>
-
-      ${
-        settings.banner_url
-        ? `<img src="${settings.banner_url}"
-             class="rounded-3xl mb-10 w-full object-cover">`
-        : ""
-      }
-
-      <div class="grid md:grid-cols-3 gap-8">
-        ${kits.map(k=>`
-          <div class="bg-black/40 p-6 rounded-3xl border border-gray-800">
-
-            ${
-              k.image_url
-              ? `<img src="${k.image_url}"
-                   class="rounded-xl mb-4 w-full h-40 object-cover">`
-              : ""
-            }
-
-            <h3 class="text-xl font-semibold">${k.title}</h3>
-            <p class="text-gray-400 mt-2">${k.description || ""}</p>
-
-            <div class="mt-4 text-2xl font-bold">
-              ${money(k.price_cents)}
-            </div>
-
-            <a href="./buy.html?kit=${k.id}"
-              class="mt-6 block text-center py-3 rounded-xl bg-gray-300 text-black font-semibold">
-              Comprar
-            </a>
-
-          </div>
-        `).join("")}
-      </div>
-    </div>
-  `;
-}
-
-loadSite();
 </script>
 
 </body>
