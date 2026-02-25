@@ -3,26 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<title>Loja Bedrock</title>
+
+<title>Bedrock Store</title>
 
 <style>
   body {
-    background: radial-gradient(circle at top, #111 0%, #000 70%);
+    background: linear-gradient(180deg, #111111 0%, #000000 100%);
   }
 </style>
 </head>
 
-<body class="text-white min-h-screen">
+<body class="text-gray-200 min-h-screen">
 
 <!-- HEADER -->
 <header class="max-w-6xl mx-auto px-4 py-6 flex justify-between items-center">
-  <h1 class="text-2xl font-bold tracking-wide">BEDROCK STORE</h1>
+  <h1 id="logo" class="text-2xl font-bold tracking-wide cursor-pointer">
+    BEDROCK STORE
+  </h1>
 
-  <!-- Botão Admin -->
   <button id="adminOpen"
-    class="text-sm opacity-60 hover:opacity-100 transition">
+    class="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 transition">
     Admin
   </button>
 </header>
@@ -31,29 +34,29 @@
 <section id="hero" class="max-w-6xl mx-auto px-4 mt-6"></section>
 
 <!-- KITS -->
-<section class="max-w-6xl mx-auto px-4 mt-10">
-  <h2 class="text-3xl font-bold mb-6">Kits Disponíveis</h2>
+<section class="max-w-6xl mx-auto px-4 mt-12">
+  <h2 class="text-3xl font-bold mb-8">Kits Disponíveis</h2>
   <div id="kits" class="grid md:grid-cols-3 gap-6"></div>
 </section>
 
 <!-- LOGIN MODAL -->
-<div id="adminModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-  <div class="bg-zinc-900 p-8 rounded-2xl w-full max-w-md border border-white/10 shadow-2xl">
+<div id="adminModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+  <div class="bg-gradient-to-b from-gray-900 to-black p-8 rounded-2xl w-full max-w-md border border-gray-700 shadow-2xl">
     <h2 class="text-2xl font-bold mb-6">Painel Admin</h2>
 
     <input id="email" placeholder="Email"
-      class="w-full p-3 rounded-xl bg-black/50 border border-white/10 mb-4">
+      class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 mb-4">
 
     <input id="password" type="password" placeholder="Senha"
-      class="w-full p-3 rounded-xl bg-black/50 border border-white/10 mb-4">
+      class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 mb-4">
 
     <button id="loginBtn"
-      class="w-full bg-white text-black p-3 rounded-xl font-semibold hover:opacity-90">
+      class="w-full bg-gradient-to-r from-gray-300 to-gray-100 text-black p-3 rounded-lg font-semibold hover:opacity-90">
       Entrar
     </button>
 
     <button id="closeModal"
-      class="mt-4 w-full text-sm opacity-60 hover:opacity-100">
+      class="mt-4 w-full text-sm text-gray-400 hover:text-white">
       Cancelar
     </button>
 
@@ -61,40 +64,57 @@
   </div>
 </div>
 
-<script type="module">
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<script>
+/* ==========================
+   SUPABASE CONFIG
+========================== */
 
 const SUPABASE_URL = "COLE_SUA_URL_AQUI";
 const SUPABASE_ANON_KEY = "COLE_SUA_ANON_KEY_AQUI";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
 function money(c){
   return (c/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 }
 
+/* ==========================
+   CARREGAR SITE
+========================== */
+
 async function loadSite(){
-  const { data: settings } = await supabase.from("site_settings").select("*").eq("id",1).single();
-  const { data: kits } = await supabase.from("kits").select("*").eq("is_active",true);
+  const { data: settings } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("id",1)
+    .single();
+
+  const { data: kits } = await supabase
+    .from("kits")
+    .select("*")
+    .eq("is_active",true);
 
   document.getElementById("hero").innerHTML = `
-    <div class="rounded-3xl bg-gradient-to-br from-zinc-900 to-black p-10 border border-white/10 shadow-xl">
+    <div class="rounded-3xl bg-gradient-to-b from-gray-900 to-black p-10 border border-gray-700 shadow-xl">
       <h2 class="text-4xl font-bold">${settings.site_name}</h2>
-      <p class="mt-3 opacity-70">${settings.notices}</p>
+      <p class="mt-3 text-gray-400">${settings.notices}</p>
       <a href="${settings.discord_invite_url || '#'}" target="_blank"
-        class="mt-6 inline-block bg-white text-black px-6 py-3 rounded-xl font-semibold hover:opacity-90">
+        class="mt-6 inline-block bg-gradient-to-r from-gray-300 to-white text-black px-6 py-3 rounded-lg font-semibold hover:opacity-90">
         Entrar no Discord
       </a>
     </div>
   `;
 
   document.getElementById("kits").innerHTML = kits.map(k=>`
-    <div class="bg-zinc-900 p-6 rounded-2xl border border-white/10 hover:scale-[1.03] transition shadow-lg">
+    <div class="bg-gradient-to-b from-gray-900 to-black p-6 rounded-2xl border border-gray-800 hover:scale-[1.02] transition shadow-lg">
       <h3 class="text-xl font-semibold">${k.title}</h3>
-      <p class="opacity-70 mt-2">${k.description || ""}</p>
+      <p class="text-gray-400 mt-2">${k.description || ""}</p>
       <div class="mt-4 text-2xl font-bold">${money(k.price_cents)}</div>
       <a href="./buy.html?kit=${k.id}"
-        class="mt-6 block text-center bg-white text-black py-3 rounded-xl font-semibold hover:opacity-90">
+        class="mt-6 block text-center bg-gradient-to-r from-gray-300 to-white text-black py-3 rounded-lg font-semibold hover:opacity-90">
         Comprar
       </a>
     </div>
@@ -103,21 +123,21 @@ async function loadSite(){
 
 loadSite();
 
-/* ======================
+/* ==========================
    ADMIN MODAL
-====================== */
+========================== */
 
 const modal = document.getElementById("adminModal");
 
-document.getElementById("adminOpen").onclick = () => {
+document.getElementById("adminOpen").addEventListener("click", () => {
   modal.classList.remove("hidden");
-};
+});
 
-document.getElementById("closeModal").onclick = () => {
+document.getElementById("closeModal").addEventListener("click", () => {
   modal.classList.add("hidden");
-};
+});
 
-document.getElementById("loginBtn").onclick = async () => {
+document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   const msg = document.getElementById("loginMsg");
@@ -134,7 +154,7 @@ document.getElementById("loginBtn").onclick = async () => {
   } else {
     window.location.href = "./admin.html";
   }
-};
+});
 </script>
 
 </body>
