@@ -11,10 +11,10 @@
 
 <style>
 body{
-  background: linear-gradient(135deg,#1e1e1e,#000);
+  background: linear-gradient(135deg,#1e1e1e,#000000);
 }
 .card{
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.7);
   border:1px solid #2a2a2a;
 }
 </style>
@@ -22,7 +22,29 @@ body{
 
 <body class="text-gray-200 min-h-screen">
 
-<div id="app" class="max-w-6xl mx-auto px-6 py-10"></div>
+<div id="loginBox"
+     class="max-w-md mx-auto mt-24 p-8 rounded-3xl card shadow-xl">
+
+  <h2 class="text-2xl font-bold mb-6 text-center">Login Admin</h2>
+
+  <input id="email"
+    placeholder="Email"
+    class="w-full p-3 mb-4 rounded bg-gray-800">
+
+  <input id="password"
+    type="password"
+    placeholder="Senha"
+    class="w-full p-3 mb-4 rounded bg-gray-800">
+
+  <button id="loginBtn"
+    class="w-full py-3 bg-gray-300 text-black rounded font-semibold">
+    Entrar
+  </button>
+
+  <div id="msg" class="mt-4 text-sm text-center"></div>
+</div>
+
+<div id="panelBox" class="hidden max-w-6xl mx-auto px-6 py-10"></div>
 
 <script>
 const SUPABASE_URL = "https://jyrgpvozcsuydfvwdbso.supabase.co";
@@ -33,65 +55,43 @@ const supabase = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-const app = document.getElementById("app");
+const loginBox = document.getElementById("loginBox");
+const panelBox = document.getElementById("panelBox");
 
-init();
+document.getElementById("loginBtn").onclick = async function(){
 
-async function init(){
-  const { data:{session} } = await supabase.auth.getSession();
-  if(session) showPanel();
-  else showLogin();
-}
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
+  });
 
-/* ---------------- LOGIN ---------------- */
+  if(error){
+    msg.innerHTML = `<span class='text-red-400'>${error.message}</span>`;
+  } else {
+    loginBox.classList.add("hidden");
+    panelBox.classList.remove("hidden");
+    loadPanel();
+  }
+};
 
-function showLogin(){
-  app.innerHTML = `
-  <div class="max-w-md mx-auto card p-8 rounded-3xl shadow-xl">
-    <h2 class="text-2xl font-bold mb-6 text-center">Login Admin</h2>
+async function loadPanel(){
 
-    <input id="email" placeholder="Email"
-      class="w-full p-3 mb-4 rounded bg-gray-800">
+  const { data: settings } = await supabase
+    .from("site_settings")
+    .select("*")
+    .eq("id",1)
+    .single();
 
-    <input id="password" type="password" placeholder="Senha"
-      class="w-full p-3 mb-4 rounded bg-gray-800">
+  const { data: kits } = await supabase.from("kits").select("*");
+  const { data: coupons } = await supabase.from("coupons").select("*");
+  const { data: orders } = await supabase.from("orders").select("*");
 
-    <button id="loginBtn"
-      class="w-full py-3 bg-gray-300 text-black rounded font-semibold">
-      Entrar
-    </button>
-
-    <div id="msg" class="mt-4 text-sm text-center"></div>
-  </div>
-  `;
-
-  document.getElementById("loginBtn").onclick = async ()=>{
-    const {error} = await supabase.auth.signInWithPassword({
-      email:email.value,
-      password:password.value
-    });
-
-    if(error) msg.innerHTML = `<span class='text-red-400'>${error.message}</span>`;
-    else showPanel();
-  };
-}
-
-/* ---------------- PAINEL ---------------- */
-
-async function showPanel(){
-
-  const {data:settings} = await supabase.from("site_settings").select("*").eq("id",1).single();
-  const {data:kits} = await supabase.from("kits").select("*");
-  const {data:coupons} = await supabase.from("coupons").select("*");
-  const {data:orders} = await supabase.from("orders").select("*");
-
-  app.innerHTML = `
+  panelBox.innerHTML = `
   <div class="flex justify-between items-center mb-10">
     <h1 class="text-3xl font-bold">Painel Admin</h1>
     <button onclick="logout()" class="px-4 py-2 bg-red-600 rounded">Sair</button>
   </div>
 
-  <!-- CONFIG -->
   <div class="card p-6 rounded-2xl mb-8">
     <h2 class="text-xl font-bold mb-4">Configurações da Loja</h2>
 
@@ -103,15 +103,13 @@ async function showPanel(){
       <input id="color2" type="color" value="${settings.gradient_color_2}">
     </div>
 
-    <input id="banner" value="${settings.banner_url||''}"
-      placeholder="URL Banner"
+    <input id="banner" value="${settings.banner_url || ''}"
       class="w-full p-2 mb-3 rounded bg-gray-800">
 
     <button onclick="saveSettings()"
       class="px-6 py-2 bg-green-600 rounded">Salvar</button>
   </div>
 
-  <!-- KITS -->
   <div class="card p-6 rounded-2xl mb-8">
     <h2 class="text-xl font-bold mb-4">Criar Kit</h2>
 
@@ -124,25 +122,22 @@ async function showPanel(){
     <input id="kitPrice" type="number" placeholder="Preço"
       class="w-full p-2 mb-2 rounded bg-gray-800">
 
-    <input id="kitImage" placeholder="URL Imagem"
+    <input id="kitImage" placeholder="URL da Imagem"
       class="w-full p-2 mb-3 rounded bg-gray-800">
 
     <button onclick="createKit()"
       class="px-6 py-2 bg-blue-600 rounded">Criar Kit</button>
 
     <h3 class="mt-6 font-bold">Kits Existentes</h3>
-    ${
-      kits.map(k=>`
-        <div class="mt-2 p-3 border border-gray-700 rounded">
-          ${k.title} - R$ ${(k.price_cents/100).toFixed(2)}
-          <button onclick="deleteKit('${k.id}')"
-            class="ml-3 text-red-400">Excluir</button>
-        </div>
-      `).join("")
-    }
+    ${kits.map(k=>`
+      <div class="mt-2 p-3 border border-gray-700 rounded">
+        ${k.title}
+        <button onclick="deleteKit('${k.id}')"
+          class="ml-3 text-red-400">Excluir</button>
+      </div>
+    `).join("")}
   </div>
 
-  <!-- CUPONS -->
   <div class="card p-6 rounded-2xl mb-8">
     <h2 class="text-xl font-bold mb-4">Criar Cupom</h2>
 
@@ -154,42 +149,29 @@ async function showPanel(){
 
     <button onclick="createCoupon()"
       class="px-6 py-2 bg-purple-600 rounded">Criar Cupom</button>
-
-    <h3 class="mt-6 font-bold">Cupons</h3>
-    ${
-      coupons.map(c=>`
-        <div class="mt-2 p-3 border border-gray-700 rounded">
-          ${c.code} - ${c.discount_percent}%
-        </div>
-      `).join("")
-    }
   </div>
 
-  <!-- PEDIDOS -->
   <div class="card p-6 rounded-2xl">
     <h2 class="text-xl font-bold mb-4">Pedidos</h2>
-    ${
-      orders.map(o=>`
-        <div class="mt-2 p-4 border border-gray-700 rounded">
-          <b>${o.kit_title}</b> - ${o.mc_nick}
-          <p>Status: ${o.status}</p>
-          ${
-            o.status==="pending"
-            ? `
-              <button onclick="approve('${o.id}')"
-                class="px-3 py-1 bg-green-600 rounded mr-2">Aprovar</button>
-              <button onclick="deny('${o.id}')"
-                class="px-3 py-1 bg-red-600 rounded">Negar</button>
-            `
-            : ""
-          }
-        </div>
-      `).join("")
-    }
+
+    ${orders.map(o=>`
+      <div class="mt-2 p-4 border border-gray-700 rounded">
+        <b>${o.kit_title}</b> - ${o.mc_nick}
+        <p>Status: ${o.status}</p>
+        ${
+          o.status==="pending"
+          ? `
+            <button onclick="approve('${o.id}')"
+              class="px-3 py-1 bg-green-600 rounded mr-2">Aprovar</button>
+            <button onclick="deny('${o.id}')"
+              class="px-3 py-1 bg-red-600 rounded">Negar</button>
+          `
+          : ""
+        }
+      </div>
+    `).join("")}
   </div>
   `;
-
-  /* FUNÇÕES */
 
   window.saveSettings = async ()=>{
     await supabase.from("site_settings").update({
@@ -209,12 +191,12 @@ async function showPanel(){
       image_url:kitImage.value,
       is_active:true
     });
-    showPanel();
+    loadPanel();
   };
 
   window.deleteKit = async (id)=>{
     await supabase.from("kits").delete().eq("id",id);
-    showPanel();
+    loadPanel();
   };
 
   window.createCoupon = async ()=>{
@@ -223,22 +205,23 @@ async function showPanel(){
       discount_percent:parseInt(couponDiscount.value),
       active:true
     });
-    showPanel();
+    loadPanel();
   };
 
   window.approve = async (id)=>{
     await supabase.from("orders").update({status:"approved"}).eq("id",id);
-    showPanel();
+    loadPanel();
   };
 
   window.deny = async (id)=>{
     await supabase.from("orders").update({status:"denied"}).eq("id",id);
-    showPanel();
+    loadPanel();
   };
 
   window.logout = async ()=>{
     await supabase.auth.signOut();
-    showLogin();
+    panelBox.classList.add("hidden");
+    loginBox.classList.remove("hidden");
   };
 }
 </script>
